@@ -1,29 +1,43 @@
 public class DeterministicSelector {
+    private static int maxRecursionDepth;
+    private static long comparisons;
+
     public static int select(int[] array, int k) {
         if (k < 0 || k >= array.length) {
             throw new IllegalArgumentException("k is outside the array");
         }
-        return select(array, 0, array.length - 1, k);
+        maxRecursionDepth = 0;
+        comparisons = 0;
+        return select(array, 0, array.length - 1, k, 1);
     }
 
-    private static int select(int[] array, int left, int right, int k) {
+    public static int getLastMaxRecursionDepth() {
+        return maxRecursionDepth;
+    }
+
+    public static long getLastComparisons() {
+        return comparisons;
+    }
+
+    private static int select(int[] array, int left, int right, int k, int depth) {
+        maxRecursionDepth = Math.max(maxRecursionDepth, depth);
         if (left == right) {
             return array[left];
         }
 
-        int pivot = medianOfMedians(array, left, right);
+        int pivot = medianOfMedians(array, left, right, depth);
         int[] middle = partition(array, left, right, pivot);
 
         if (k < middle[0]) {
-            return select(array, left, middle[0] - 1, k);
+            return select(array, left, middle[0] - 1, k, depth + 1);
         }
         if (k > middle[1]) {
-            return select(array, middle[1] + 1, right, k);
+            return select(array, middle[1] + 1, right, k, depth + 1);
         }
         return array[k];
     }
 
-    private static int medianOfMedians(int[] array, int left, int right) {
+    private static int medianOfMedians(int[] array, int left, int right, int depth) {
         int size = right - left + 1;
         if (size <= 5) {
             insertionSort(array, left, right);
@@ -40,7 +54,7 @@ public class DeterministicSelector {
         }
 
         int medianIndex = left + medianCount / 2;
-        return select(array, left, left + medianCount - 1, medianIndex);
+        return select(array, left, left + medianCount - 1, medianIndex, depth + 1);
     }
 
     private static int[] partition(int[] array, int left, int right, int pivot) {
@@ -50,8 +64,10 @@ public class DeterministicSelector {
 
         while (current <= larger) {
             if (array[current] < pivot) {
+                comparisons++;
                 swap(array, smaller++, current++);
             } else if (array[current] > pivot) {
+                comparisons++;
                 swap(array, current, larger--);
             } else {
                 current++;
@@ -64,7 +80,11 @@ public class DeterministicSelector {
         for (int i = left + 1; i <= right; i++) {
             int value = array[i];
             int j = i - 1;
-            while (j >= left && array[j] > value) {
+            while (j >= left) {
+                comparisons++;
+                if (array[j] <= value) {
+                    break;
+                }
                 array[j + 1] = array[j];
                 j--;
             }
